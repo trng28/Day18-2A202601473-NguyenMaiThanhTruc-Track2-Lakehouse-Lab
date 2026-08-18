@@ -155,3 +155,15 @@ assert n_dates >= 7, (
 # - [ ] Silver has fewer rows than Bronze (dedup worked)
 # - [ ] Gold spans ≥ 7 dates × 3 models (slide §8 medallion contract)
 # - [ ] Cost & error_rate columns populated and non-zero
+
+# %%
+checks = {
+    "bronze/silver/gold all exist on disk": all(Path(p).exists() for p in (BRONZE, SILVER, GOLD)),
+    "silver < bronze (dedup worked)":       silver_n < bronze_n,
+    "gold covers ≥ 7 dates x 3 models":     n_dates >= 7 and n_models == 3,
+    "cost_usd and error_rate populated":    gold_df["cost_usd"].sum() > 0 and gold_df["error_rate"].sum() > 0,
+}
+for k, v in checks.items():
+    print(f"  [{'PASS' if v else 'FAIL'}] {k}")
+assert all(checks.values()), "NB4 incomplete — see FAIL rows above"
+print("\nNB4 complete.")

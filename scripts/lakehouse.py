@@ -9,10 +9,25 @@ the same data. This is the value of an open table format.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 # Repo-local lakehouse — easy to inspect, easy to wipe.
-ROOT = Path(os.environ.get("LAKEHOUSE_ROOT", Path(__file__).resolve().parents[1] / "_lakehouse"))
+_ENV_ROOT = os.environ.get("LAKEHOUSE_ROOT")
+if _ENV_ROOT:
+    ROOT = Path(_ENV_ROOT)
+else:
+    ROOT = Path(__file__).resolve().parents[1] / "_lakehouse"
+    if os.name == "posix" and str(ROOT).startswith("/mnt/"):
+        # WSL mounts Windows drives via DrvFs/9p, and delta-rs's local
+        # writer fails intermittently there ("LocalFileSystem error:
+        # Upload aborted"). Write Delta tables to native Linux storage
+        # instead; set LAKEHOUSE_ROOT to override this redirect.
+        ROOT = Path.home() / ".cache" / "day18-lakehouse" / "_lakehouse"
+        # stderr, not stdout: scripts do `$(python3 -c '... print(ROOT)')` to
+        # capture just the path, and a stdout notice would corrupt that.
+        print(f"[lakehouse] Repo is on a WSL /mnt mount; writing Delta tables to "
+              f"{ROOT} instead (set LAKEHOUSE_ROOT to override).", file=sys.stderr)
 
 
 def path(layer: str, table: str) -> str:
